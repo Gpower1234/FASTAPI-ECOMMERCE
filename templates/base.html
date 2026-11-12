@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ShopFast E-Commerce{% endblock %}</title>
+    <!-- Tailwind CSS CDN for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 flex flex-col min-h-screen">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <a href="/" class="text-2xl font-bold text-indigo-600">ShopFast</a>
+                
+                <div class="flex items-center space-x-6">
+    <a href="/" class="text-gray-700 hover:text-indigo-600">Home</a>
+    <a href="/cart-page" class="relative text-gray-700 hover:text-indigo-600">
+        Cart
+        <span id="cart-count" class="ml-1 bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full">0</span>
+    </a>
+    
+    <!-- Dynamic Auth Container -->
+    <div id="auth-nav" class="flex items-center space-x-4">
+        <a href="/login-page" id="login-btn" class="text-gray-700 hover:text-indigo-600">Login</a>
+        <a href="/register-page" id="register-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">Register</a>
+    </div>
+</div>
+
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Page Content -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-300 py-6 text-center text-sm">
+        &copy; 2026 ShopFast Backend Engine. Built with FastAPI & PostgreSQL.
+    </footer>
+
+<script>
+    // Helper function to decode JWT payload safely
+    function parseJwt(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // --- Shopping Cart Logic ---
+
+    // Helper to get cart items from localStorage
+    function getCart() {
+        const cart = localStorage.getItem('cart');
+        return cart ? JSON.parse(cart) : [];
+    }
+
+    // Helper to save cart items to localStorage
+    function saveCart(cart) {
+        localStorage.setItem('cart', JSON.stringify(cart));
+        updateCartBadge();
+    }
+
+    // Update the cart count badge in the navbar
+    function updateCartBadge() {
+        const cart = getCart();
+        // Sum up total quantities of all items in cart
+        const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+        const badge = document.getElementById('cart-count');
+        if (badge) {
+            badge.textContent = totalCount;
+        }
+    }
+
+    // Add item to cart handler
+    function addToCart(product) {
+        let cart = getCart();
+        const existingIndex = cart.findIndex(item => item.id === product.id);
+
+        if (existingIndex > -1) {
+            // If product already exists in cart, increase quantity
+            cart[existingIndex].quantity += 1;
+        } else {
+            // Otherwise, add new product with quantity 1
+            cart.push({
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                quantity: 1
+            });
+        }
+
+        saveCart(cart);
+        alert(`${product.name} added to cart!`);
+    }
+
+    // Event listener for all "Add to Cart" buttons across the site
+    document.addEventListener('click', (e) => {
+        if (e.target && e.target.classList.contains('add-to-cart-btn')) {
+            const product = {
+                id: e.target.getAttribute('data-id'),
+                name: e.target.getAttribute('data-name'),
+                price: parseFloat(e.target.getAttribute('data-price'))
+            };
+            addToCart(product);
+        }
+    });
+
+    // Initialize badge count on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        updateCartBadge();
+    });
+
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const token = localStorage.getItem('access_token');
+        const authNav = document.getElementById('auth-nav');
+
+        if (token && authNav) {
+            const userInfo = parseJwt(token);
+            const userEmail = userInfo && userInfo.sub ? userInfo.sub : 'User';
+
+            // Display welcome message with email and Logout button
+            authNav.innerHTML = `
+                <span class="text-gray-700 font-medium">Welcome back, <span class="text-indigo-600 font-semibold">${userEmail}</span></span>
+                <button id="logout-btn" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition">Logout</button>
+            `;
+
+            document.getElementById('logout-btn').addEventListener('click', () => {
+                localStorage.removeItem('access_token');
+                alert('You have been logged out.');
+                window.location.href = '/';
+            });
+        }
+    });
+</script>
+
+
+
+</body>
+</html>

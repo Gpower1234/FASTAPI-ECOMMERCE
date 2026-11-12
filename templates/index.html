@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Products - ShopFast{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-extrabold text-gray-900 mb-6">Product Catalog</h1>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    {% for product in products %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex flex-col justify-between hover:shadow-md transition">
+        <div>
+            <span class="inline-block bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-md mb-2">
+                {{ product.category.name if product.category else 'General' }}
+            </span>
+            <h2 class="text-lg font-bold text-gray-800 mb-1">{{ product.title }}</h2>
+            <p class="text-gray-500 text-sm mb-4 line-clamp-2">{{ product.description or 'No description available.' }}</p>
+        </div>
+        <div>
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-xl font-extrabold text-gray-900">${{ "%.2f"|format(product.price) }}</span>
+                <span class="text-xs text-gray-500 font-medium">Stock: {{ product.stock }}</span>
+            </div>
+            
+            <button class="add-to-cart-btn bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition"
+                    data-id="{{ product.id }}"
+                    data-name="{{ product.name }}"
+                    data-price="{{ product.price }}">
+                Add to Cart
+            </button>
+
+        </div>
+    </div>
+    {% else %}
+    <p class="text-gray-500 col-span-full text-center py-12">No products available in the catalog yet.</p>
+    {% endfor %}
+</div>
+
+<script>
+async function addToCart(productId) {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+        alert("Please log in to add items to your cart.");
+        window.location.href = "/login-page";
+        return;
+    }
+
+    const response = await fetch("/cart/add", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ product_id: productId, quantity: 1 })
+    });
+
+    if (response.ok) {
+        alert("Item added to cart!");
+    } else {
+        const error = await response.json();
+        alert("Error: " + (error.detail || "Could not add item to cart."));
+    }
+}
+</script>
+{% endblock %}
